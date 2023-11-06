@@ -3,11 +3,12 @@
 #include <cmath>
 #include <vector>
 #include <set>
+#include <iostream>
 #include "Body.hpp"
 
 class PhysicsUtils {
 public:
-    static const double G = 6.67428;
+    static constexpr double G = 6.67428;
     static sf::Vector2<double> getCenterOfMass(std::set <Body *> vec);
     static sf::Vector2<double> getCenterOfMass(Body *bod1, Body *bod2);
     static double totalMass(std::set <Body *> vec);
@@ -19,7 +20,7 @@ public:
 };
 
 struct barnes_hut_node {
-    sf::Vector2<double> pos_top_corner, pos_bot_corner;
+    sf::Vector2<double> top_corner, size;
     Body *body;
     struct barnes_hut_node *children[4];
 
@@ -43,18 +44,19 @@ private:
     double theta;
     barnes_hut_node *root;
     sf::Vector2<double> size;
-    std::set <Body *> bodies;
+    std::set <Body *> *bodies;
 
-    void insertBody(barnes_hut_node *root, Body *body, sf::Vector2 <double> bot, sf::Vector2 <double> top);
+    void insertBody(barnes_hut_node *&root, Body *body, sf::Vector2 <double> bot, sf::Vector2 <double> top);
+    void computeNetForceHelper(sf::Vector2<double> &sum, barnes_hut_node *it, Body *body);
 public:
     sf::Vector2<double> computeNetForce(Body *body);
     void walk(double dt);
-    void constructTree(std::set <Body *> bodies);
-    BarnesHutTree(std::set <Body *> bodies, sf::Vector2<double> size, double theta = 0.5) {
+    void constructTree();
+    BarnesHutTree(std::set <Body *> *&bodies, sf::Vector2<double> size, double theta = 0.5) {
         this->bodies = bodies;
         this->size = size;
         this->theta = theta;
-        this->constructTree(bodies);
+        this->root = NULL;
     }
     
 
