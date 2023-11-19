@@ -4,23 +4,20 @@
 #include <vector>
 #include <set>
 #include <iostream>
-#include "Body.hpp"
+#include "body.hpp"
 
-class PhysicsUtils {
-public:
-    static constexpr double G = 6.67428;
-    static sf::Vector2<double> getCenterOfMass(std::set <Body *> vec);
-    static sf::Vector2<double> getCenterOfMass(Body *bod1, Body *bod2);
-    static double totalMass(std::set <Body *> vec);
-    static double totalMass(Body *bod1, Body *bod2);
-    static sf::Vector2<double> getAccelFromForce(Body *bod, sf::Vector2<double> force);
-    static sf::Vector2<double> getForce(Body *bod1, Body *bod2);
-    static double norm(sf::Vector2 <double> v);
-    static sf::Vector2<double> dotProduct(sf::Vector2<double>a, sf::Vector2<double>b);
+
+namespace PhysicsUtils {
+    utils::Vector2 getCenterOfMass(std::set <Body *> vec);
+    utils::Vector2 getCenterOfMass(Body *bod1, Body *bod2);
+    double totalMass(std::set <Body *> vec);
+    double totalMass(Body *bod1, Body *bod2);
+    utils::Vector2 getAccelFromForce(Body *bod, utils::Vector2 force);
+    utils::Vector2 getForce(Body *bod1, Body *bod2);
 };
 
 struct barnes_hut_node {
-    sf::Vector2<double> top_corner, size;
+    utils::Vector2  top_corner, size;
     Body *body;
     struct barnes_hut_node *children[4];
 
@@ -43,22 +40,20 @@ class BarnesHutTree {
 private:
     double theta;
     barnes_hut_node *root;
-    sf::Vector2<double> size;
+    utils::Vector2  size;
     std::set <Body *> *bodies;
 
-    void insertBody(barnes_hut_node *&root, Body *body, sf::Vector2 <double> bot, sf::Vector2 <double> top);
-    void computeNetForceHelper(sf::Vector2<double> &sum, barnes_hut_node *it, Body *body);
+    void insertBody(barnes_hut_node *&root, Body *body, utils::Vector2 bot, utils::Vector2 top);
+    void computeNetForceHelper(utils::Vector2  &sum, barnes_hut_node *it, Body *body);
 public:
-    sf::Vector2<double> computeNetForce(Body *body);
+    utils::Vector2  computeNetForce(Body *body);
     void walk(double dt);
     void constructTree();
-    BarnesHutTree(std::set <Body *> *&bodies, sf::Vector2<double> size, double theta = 0.5) {
+    BarnesHutTree(std::set <Body *> *&bodies, utils::Vector2  size, double theta = 0.5) {
         this->bodies = bodies;
         this->size = size;
         this->theta = theta;
         this->root = NULL;
     }
-    
-
 
 };

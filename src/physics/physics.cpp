@@ -1,6 +1,6 @@
 #include "physics.hpp"
 
-sf::Vector2<double> PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
+utils::Vector2 PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
     double x = 0, y = 0;
     double total_mass = 0;
     for (auto& bod : vec) {
@@ -11,11 +11,11 @@ sf::Vector2<double> PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
     if (total_mass == 0) {
         exit(1);
     }
-    return sf::Vector2<double>(x / total_mass, y / total_mass);
+    return utils::Vector2 (x / total_mass, y / total_mass);
 }
 
-sf::Vector2<double> PhysicsUtils::getCenterOfMass(Body *bod1, Body *bod2) {
-    return (bod1->getMass() * bod1->getPos() + bod2->getMass() * bod2->getPos()) / (bod1->getMass() + bod2->getMass());
+utils::Vector2  PhysicsUtils::getCenterOfMass(Body *bod1, Body *bod2) {
+    return (bod1->getPos() * bod1->getMass() + bod2->getMass() * bod2->getPos()) / (bod1->getMass() + bod2->getMass());
 }
 
 double PhysicsUtils::totalMass(std::set <Body *> vec) {
@@ -30,33 +30,26 @@ double PhysicsUtils::totalMass(Body *bod1, Body *bod2) {
 }
 
 
-sf::Vector2<double> PhysicsUtils::getAccelFromForce(Body *bod, sf::Vector2<double> force) {
-    return sf::Vector2<double>(force.x/bod->getMass(), force.y/bod->getMass());
+utils::Vector2  PhysicsUtils::getAccelFromForce(Body *bod, utils::Vector2  force) {
+    return utils::Vector2 (force.x/bod->getMass(), force.y/bod->getMass());
 }
 
-double PhysicsUtils::norm(sf::Vector2<double> v) {
-    return sqrt(v.x * v.x + v.y * v.y);
-}
-
-sf::Vector2<double> PhysicsUtils::dotProduct(sf::Vector2<double>a, sf::Vector2<double>b) {
-    return sf::Vector2<double>(a.x * b.x, a.y * b.y);
-}
 // Force applied by bod2 to bod1
-sf::Vector2<double> PhysicsUtils::getForce(Body *bod1, Body *bod2) {
-    sf::Vector2<double> r = bod2->getPos() - bod1->getPos();
+utils::Vector2  PhysicsUtils::getForce(Body *bod1, Body *bod2) {
+    utils::Vector2  r = bod1->getPos() - bod2->getPos();
     
-    sf::Vector2<double> force(1, 1);
-    double rn = PhysicsUtils::norm(r);
-    force *= PhysicsUtils::G * bod1->getMass() * bod2->getMass() / (rn * rn);
+    utils::Vector2  force(1, 1);
+    double rn = r.norm();
+    force *= utils::G * bod1->getMass() * bod2->getMass() / (rn * rn);
 
-    r /= PhysicsUtils::norm(r);
+    r /= r.norm();
     
-    force = PhysicsUtils::dotProduct(force, r);
-    return -force;
+    force *= r;
+    return force;
 }
 
-size_t chooseQuad(sf::Vector2<double> pos, sf::Vector2<double> top, sf::Vector2<double> size) {
-    sf::Vector2<double> mid = top + PhysicsUtils::dotProduct(size, sf::Vector2<double>(0.5, 0.5));
+size_t chooseQuad(utils::Vector2  pos, utils::Vector2  top, utils::Vector2  size) {
+    utils::Vector2  mid = top + size * 0.5;
     if (pos.x < mid.x) {
         if (pos.y < mid.y) {
             return 0;
@@ -68,19 +61,19 @@ size_t chooseQuad(sf::Vector2<double> pos, sf::Vector2<double> top, sf::Vector2<
     }
     return 3;
 }
-sf::Vector2<double> getPosQuad(size_t quad, sf::Vector2<double> top, sf::Vector2<double> half_size) {
+utils::Vector2  getPosQuad(size_t quad, utils::Vector2  top, utils::Vector2  half_size) {
     if (quad == 0) {
         return top;
     }
     if (quad == 1) {
-        return sf::Vector2<double>(top.x + half_size.x, top.y);
+        return utils::Vector2 (top.x + half_size.x, top.y);
     }
     if (quad == 2) {
-        return sf::Vector2<double>(top.x, top.y + half_size.y);
+        return utils::Vector2 (top.x, top.y + half_size.y);
     }
-    return sf::Vector2<double>(top.x + half_size.x, top.y + half_size.y);
+    return utils::Vector2 (top.x + half_size.x, top.y + half_size.y);
 }
-void BarnesHutTree::insertBody(barnes_hut_node* &it, Body *body, sf::Vector2 <double> top, sf::Vector2 <double> size) {
+void BarnesHutTree::insertBody(barnes_hut_node* &it, Body *body, utils::Vector2 top, utils::Vector2 size) {
     if (it == NULL) {
         it = new barnes_hut_node;
         it->top_corner = top;
@@ -92,13 +85,11 @@ void BarnesHutTree::insertBody(barnes_hut_node* &it, Body *body, sf::Vector2 <do
         }
         return;
     }
-    sf::Vector2<double> half_size = PhysicsUtils::dotProduct(size, sf::Vector2<double>(0.5, 0.5));
+    utils::Vector2  half_size = size * 0.5;
     
-
-
     size_t bquad = chooseQuad(body->getPos(), top, size);
     // External node
-    if (std::find(this->bodies->begin(), this->bodies->end(), it->body) != this->bodies->end()) {
+    if (this->bodies->find(it->body) != this->bodies->end()) {
         Body *c = it->body;
         size_t cquad = chooseQuad(it->body->getPos(), top, size);
         it->top_corner = top;
@@ -118,19 +109,19 @@ void BarnesHutTree::insertBody(barnes_hut_node* &it, Body *body, sf::Vector2 <do
 
 void BarnesHutTree::constructTree() {
     for (auto &x: *(this->bodies)) {
-        insertBody(this->root, x, sf::Vector2<double>(0, 0), this->size);
+        insertBody(this->root, x, utils::Vector2 (0, 0), this->size);
     }
 }
 
-void BarnesHutTree::computeNetForceHelper(sf::Vector2<double> &sum, barnes_hut_node *it, Body *body) {
+void BarnesHutTree::computeNetForceHelper(utils::Vector2  &sum, barnes_hut_node *it, Body *body) {
     if (it == NULL) {
         return;
     }
     if (it->body == body) {
         return;
     }
-    double s = PhysicsUtils::norm(it->size);
-    double d = PhysicsUtils::norm(it->body->getPos() - body->getPos());
+    double s = it->size.norm();
+    double d = (it->body->getPos() - body->getPos()).norm();
     
     if (s / d < theta) {
         sum += PhysicsUtils::getForce(it->body, body);
@@ -149,8 +140,8 @@ void BarnesHutTree::computeNetForceHelper(sf::Vector2<double> &sum, barnes_hut_n
     
 }
 
-sf::Vector2<double> BarnesHutTree::computeNetForce(Body *body) {
-    sf::Vector2<double> force(0, 0);
+utils::Vector2  BarnesHutTree::computeNetForce(Body *body) {
+    utils::Vector2 force(0, 0);
     computeNetForceHelper(force, this->root, body);
     
     return force;
@@ -159,7 +150,7 @@ sf::Vector2<double> BarnesHutTree::computeNetForce(Body *body) {
 void BarnesHutTree::walk(double dt) {
     this->constructTree();
     for (auto &x : *(this->bodies)) {
-        sf::Vector2<double> force = this->computeNetForce(x);
+        utils::Vector2 force = this->computeNetForce(x);
         x->setAcceleration(PhysicsUtils::getAccelFromForce(x, force));
     }
     for (auto &x: *(this->bodies)) {
