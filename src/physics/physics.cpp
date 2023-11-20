@@ -1,4 +1,5 @@
 #include "physics.hpp"
+#include <unistd.h>
 
 utils::Vector2 PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
     double x = 0, y = 0;
@@ -47,21 +48,30 @@ utils::Vector2  PhysicsUtils::getForce(Body *bod1, Body *bod2) {
     force *= r;
     return force;
 }
-
+ bool BarnesHutTree::is_purgable(utils::Vector2 pos) {
+    utils::Vector2 other = this->corner + this->size;
+    if (pos.x < corner.x || pos.y < corner.y) {
+        return true;
+    }
+    if (pos.x > other.x || pos.y > other.y) {
+        return true;    
+    }
+    return false;
+}
 size_t chooseQuad(utils::Vector2  pos, utils::Vector2  top, utils::Vector2  size) {
     utils::Vector2  mid = top + size * 0.5;
-    if (pos.x < mid.x) {
-        if (pos.y < mid.y) {
+    if (pos.x <= mid.x) {
+        if (pos.y <= mid.y) {
             return 0;
         }
         return 2;
     }
-    if (pos.y < mid.y) {
+    if (pos.y <= mid.y) {
         return 1;
     }
     return 3;
 }
-utils::Vector2  getPosQuad(size_t quad, utils::Vector2  top, utils::Vector2  half_size) {
+utils::Vector2 getPosQuad(size_t quad, utils::Vector2  top, utils::Vector2  half_size) {
     if (quad == 0) {
         return top;
     }
@@ -109,7 +119,8 @@ void BarnesHutTree::insertBody(barnes_hut_node* &it, Body *body, utils::Vector2 
 
 void BarnesHutTree::constructTree() {
     for (auto &x: *(this->bodies)) {
-        insertBody(this->root, x, utils::Vector2 (0, 0), this->size);
+        std::cout << "planet " << x->getMass() << std::endl;
+        insertBody(this->root, x, this->corner, this->size);
     }
 }
 
@@ -150,7 +161,7 @@ utils::Vector2  BarnesHutTree::computeNetForce(Body *body) {
 void BarnesHutTree::walk(double dt) {
     this->constructTree();
     for (auto &x : *(this->bodies)) {
-        utils::Vector2 force = this->computeNetForce(x);
+        utils::Vector2  force = this->computeNetForce(x);
         x->setAcceleration(PhysicsUtils::getAccelFromForce(x, force));
     }
     for (auto &x: *(this->bodies)) {
@@ -158,7 +169,7 @@ void BarnesHutTree::walk(double dt) {
     }
     delete this->root;
     for (auto x = this->bodies->begin(); x != this->bodies->end(); ) {
-        if ((*x)->getPos().x < 0 || (*x)->getPos().x > this->size.x || (*x)->getPos().y < 0 || (*x)->getPos().y > this->size.y) {
+        if (this->is_purgable((*x)->getPos())) {
             delete *x;
             x = this->bodies->erase(x);
             if (x == this->bodies->end()) {

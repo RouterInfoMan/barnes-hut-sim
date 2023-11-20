@@ -9,16 +9,11 @@ private:
     utils::Vector2 velocity;
     utils::Vector2 acceleration;
 public:
-    Body(double mass, utils::Vector2 pos, utils::Vector2 vel) {
+    Body(double mass, utils::Vector2 pos, utils::Vector2 vel = utils::Vector2(0, 0)) {
         this->mass = mass;
         this->pos = pos;
         this->velocity = vel;
         this->acceleration = utils::Vector2(0, 0);
-    }
-    Body(double mass, utils::Vector2 pos) {
-        this->mass = mass;
-        this->pos = pos;
-        this->velocity = this->acceleration = utils::Vector2(0, 0);
     }
     utils::Vector2 getPos();
     void setPos(utils::Vector2 pos);

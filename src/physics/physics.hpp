@@ -40,11 +40,12 @@ class BarnesHutTree {
 private:
     double theta;
     barnes_hut_node *root;
-    utils::Vector2  size;
+    utils::Vector2  corner, size;
     std::set <Body *> *bodies;
 
     void insertBody(barnes_hut_node *&root, Body *body, utils::Vector2 bot, utils::Vector2 top);
     void computeNetForceHelper(utils::Vector2  &sum, barnes_hut_node *it, Body *body);
+    bool is_purgable(utils::Vector2 pos);
 public:
     utils::Vector2  computeNetForce(Body *body);
     void walk(double dt);
@@ -54,6 +55,6 @@ public:
         this->size = size;
         this->theta = theta;
         this->root = NULL;
+        this->corner = utils::Vector2(0, 0) - size * 0.5; 
     }
-
 };

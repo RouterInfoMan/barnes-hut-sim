@@ -25,9 +25,9 @@ void Body::setAcceleration(utils::Vector2 acceleration) {
     this->acceleration = acceleration;
 }
 void Body::updateMovement(double dt) {
-    this->pos = this->pos + this->velocity * dt + this->acceleration * dt * dt / 2;
+    //this->pos = this->pos + this->velocity * dt + this->acceleration * dt * dt / 2;
     this->velocity = this->velocity + this->acceleration * dt;
-
+    this->pos = this->pos + this->velocity * dt;
     // Goodbye forces
     this->acceleration = utils::Vector2(0, 0);
 }
