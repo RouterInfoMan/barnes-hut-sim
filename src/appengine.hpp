@@ -42,8 +42,11 @@ private:
     std::string window_name;
     sf::View view;
     float window_zoom = 1;
+    float zoom_per_scroll = 0.95f;
     bool mouseMoving = false;
+    bool isViewFixed = false;
     sf::Vector2i oldMousePos;
+    std::set<Body *>::iterator it;
 
     void eventHandler(sf::Event event);
 
@@ -53,7 +56,7 @@ private:
     // One day
     const double dt = 3600;
     // Scale
-    const double scale = 1e7;
+    const double scale = 1e8;
 
     sf::Vector2f normalize_in_view(utils::Vector2 pos) {
         pos /= scale;

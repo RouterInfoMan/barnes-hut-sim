@@ -119,7 +119,6 @@ void BarnesHutTree::insertBody(barnes_hut_node* &it, Body *body, utils::Vector2 
 
 void BarnesHutTree::constructTree() {
     for (auto &x: *(this->bodies)) {
-        std::cout << "planet " << x->getMass() << std::endl;
         insertBody(this->root, x, this->corner, this->size);
     }
 }

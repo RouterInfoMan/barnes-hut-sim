@@ -10,14 +10,6 @@
 #include <string>
 #include <unistd.h>
 
-auto now() { return std::chrono::steady_clock::now(); }
-
-auto awake_time()
-{
-    using std::chrono::operator""ms;
-    return now() + 10ms;
-}
-
 void AppEngine::eventHandler(sf::Event event) {
     if (event.type == sf::Event::Closed) {
         window->close();
@@ -26,7 +18,7 @@ void AppEngine::eventHandler(sf::Event event) {
 
     if (event.type == sf::Event::Resized) {
         // update the view to the new size of the window
-        this->view.setSize(event.size.width, event.size.height);
+        this->view.setSize(event.size.width * window_zoom, event.size.height * window_zoom);
         window->setView(this->view);
     }
    
@@ -51,17 +43,26 @@ void AppEngine::eventHandler(sf::Event event) {
     }
 
     if (event.type == sf::Event::MouseWheelMoved) {
-        std::cout << "delta" << std::endl;
         if (event.mouseWheel.delta > 0) {
-            window_zoom *= 99.f/100;
-            this->view.zoom(99.f/100);
+            window_zoom *= zoom_per_scroll/1;
+            this->view.zoom(zoom_per_scroll/1);
         } else {
-            this->view.zoom(100.f/99);
-            window_zoom *= 100.f/99;
+            this->view.zoom(1/zoom_per_scroll);
+            window_zoom *= 1/zoom_per_scroll;
         }
         // this->view.setCenter(sf::Vector2f(sf::Mouse::getPosition(*window)));
         this->window->setView(view);
-        
+    }
+    if (event.type == sf::Event::KeyPressed) {
+        if (event.key.code == sf::Keyboard::N) {
+            it++;
+            if (it == this->bodies->end()) {
+                it = this->bodies->begin();
+            }
+        }
+        if (event.key.code == sf::Keyboard::F) {
+            isViewFixed = !isViewFixed;
+        }
     }
 }
 void AppEngine::setFramerateLimit(int frames) {
@@ -69,20 +70,16 @@ void AppEngine::setFramerateLimit(int frames) {
 }
 
 void AppEngine::universe_logic() {
-    sleep(5);
-    while(1) {
-        std::cout << "wassup\n\n" << std::endl;
-        const auto start{now()};
-        std::this_thread::sleep_until(awake_time());
         BarnesHutTree *bht = new BarnesHutTree(this->bodies, this->universe_size, 0);
         bht->walk(this->dt);
         delete bht;
-    }
 }
 
 
 void AppEngine::video_loop() {
     while (window->isOpen()) {
+        universe_logic();
+
         // check all the window's events that were triggered since the last iteration of the loop
         sf::Event event;
         while (window->pollEvent(event)) {
@@ -96,7 +93,10 @@ void AppEngine::video_loop() {
             temp.move(change.x * window_zoom, change.y * window_zoom);
             this->window->setView(temp);
         }
-
+        if (isViewFixed) {
+            view.setCenter(((BetterBody *)*it)->getShape()->getPosition());
+            window->setView(view);
+        }
 
         // clear the window with black color
         window->clear(sf::Color::Black);
@@ -119,29 +119,22 @@ void AppEngine::loadFromFile(std::string path) {
     fin >> count;
     // count = 7;
     for (int i = 0; i < count; i++) {
-        double mass;
+        double mass, size;
         utils::Vector2 pos, vel;
-        int size, r, g, b;
+        int r, g, b;
         fin >> pos.x >> pos.y >> vel.x >> vel.y >> mass >> size >> r >> g >> b;
+
         BetterBody *sun = new BetterBody(mass, pos, vel);
         sf::CircleShape *sun_shp = new sf::CircleShape(size, 100);
         sun_shp->setFillColor(sf::Color(r, g, b));
         sun->setShape(sun_shp, &this->drawables);
         bodies->insert(sun);
     }
-
-
+    it = bodies->begin();
     fin.close();
 }
 
 void AppEngine::start() {
     loadFromFile("planets.txt");
-
-
-    std::cout << bodies->size() << std::endl;
-
-    sf::Thread logic(&AppEngine::universe_logic, this);
-    logic.launch();
     video_loop();
-    
 }
