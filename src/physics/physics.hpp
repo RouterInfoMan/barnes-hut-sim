@@ -5,21 +5,39 @@
 #include <set>
 #include <iostream>
 #include "body.hpp"
+#include "../threadpool.hpp"
 
 
 namespace PhysicsUtils {
     utils::Vector2 getCenterOfMass(std::set <Body *> vec);
     utils::Vector2 getCenterOfMass(Body *bod1, Body *bod2);
+    utils::Vector2 getCenterOfMass(double mass1, utils::Vector2 pos1, Body *bod2);
     double totalMass(std::set <Body *> vec);
     double totalMass(Body *bod1, Body *bod2);
+    double totalMass(double mass1, Body *bod2);
     utils::Vector2 getAccelFromForce(Body *bod, utils::Vector2 force);
-    utils::Vector2 getForce(Body *bod1, Body *bod2);
+    utils::Vector2 getForce(Body *bod1, Body *bod2, double G, double epsilon = 0);
 };
 
 struct barnes_hut_node {
-    utils::Vector2  top_corner, size;
+    utils::Vector2 top_corner, size;
+    utils::Vector2 center;
+    double max_rad;
+    double mass;
     Body *body;
     struct barnes_hut_node *children[4];
+
+    bool internal;
+
+    barnes_hut_node(utils::Vector2 top_corner, utils::Vector2 size, bool internal=true, Body *body = NULL) {
+        this->top_corner = top_corner;
+        this->size = size;
+        this->internal = internal;
+        this->body = body;
+        for (int i = 0; i < 4; i++) {
+            this->children[i] = NULL;
+        }
+    }
 
     ~barnes_hut_node() {
         bool ok = 1;
@@ -37,24 +55,41 @@ struct barnes_hut_node {
 };
 
 class BarnesHutTree {
-private:
-    double theta;
-    barnes_hut_node *root;
-    utils::Vector2  corner, size;
-    std::set <Body *> *bodies;
-
-    void insertBody(barnes_hut_node *&root, Body *body, utils::Vector2 bot, utils::Vector2 top);
-    void computeNetForceHelper(utils::Vector2  &sum, barnes_hut_node *it, Body *body);
-    bool is_purgable(utils::Vector2 pos);
 public:
-    utils::Vector2  computeNetForce(Body *body);
     void walk(double dt);
     void constructTree();
-    BarnesHutTree(std::set <Body *> *&bodies, utils::Vector2  size, double theta = 0.5) {
+    BarnesHutTree(std::vector <Body *> *&bodies, utils::Vector2  size, double theta = 0.5, double G = 6.67430e-11, double epsilon = 0) {
         this->bodies = bodies;
         this->size = size;
-        this->theta = theta;
         this->root = NULL;
-        this->corner = utils::Vector2(0, 0) - size * 0.5; 
+        this->corner = utils::Vector2(0, 0) - size * 0.5;
+        this->theta = theta;
+        this->G = G;
+        this->epsilon = epsilon;
+
+        this->pool = new ThreadPool();
+        this->pool->Start();
     }
+    ~BarnesHutTree() {
+        this->pool->Stop();
+        delete this->pool;
+    }
+
+    private:
+    /// System properties
+    double theta;
+    double epsilon;
+    double G;
+    utils::Vector2  corner, size;
+    std::vector <Body *> *bodies;
+    
+    barnes_hut_node *root;
+    ThreadPool *pool;
+    void collide(barnes_hut_node *it, Body *body);
+    void plastic_collision(Body *a, Body * b);
+    void elastic_collision(Body *a, Body * b);
+    void applyNetForce(Body *body);
+    void insertBody(barnes_hut_node *&root, Body *body, utils::Vector2 bot, utils::Vector2 top);
+    utils::Vector2 computeNetForceHelper(barnes_hut_node *it, Body *body, double epsilon);
+    bool is_purgable(utils::Vector2 pos);
 };

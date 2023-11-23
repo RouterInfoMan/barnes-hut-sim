@@ -1,9 +1,9 @@
 #include "body.hpp"
 
-utils::Vector2 Body::getPos() {
+utils::Vector2 Body::getPosition() {
     return this->pos;
 }
-void Body::setPos(utils::Vector2 pos) {
+void Body::setPosition(utils::Vector2 pos) {
     this->pos = pos;
 }
 double Body::getMass() {
@@ -24,6 +24,25 @@ utils::Vector2 Body::getAcceleration() {
 void Body::setAcceleration(utils::Vector2 acceleration) {
     this->acceleration = acceleration;
 }
+
+sf::CircleShape Body::getShape() {
+    return this->shp;
+}
+void Body::setShape(sf::CircleShape shp) {
+    this->shp = shp;
+}
+void Body::updateShape(double scale) {
+    this->shp.setPosition(this->pos.x / scale, this->pos.y / scale);
+    this->shp.setRadius(this->radius/scale);
+}
+
+double Body::getRadius() {
+    return this->radius;
+}
+void Body::setRadius(double radius) {
+    this->radius = radius;
+}
+
 void Body::updateMovement(double dt) {
     //this->pos = this->pos + this->velocity * dt + this->acceleration * dt * dt / 2;
     this->velocity = this->velocity + this->acceleration * dt;

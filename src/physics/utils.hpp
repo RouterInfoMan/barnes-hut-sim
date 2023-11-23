@@ -32,6 +32,12 @@ namespace utils {
             res.y = y - obj.y;
             return res;
         }
+        Vector2 operator-() {
+            Vector2 res;
+            res.x = -this->x;
+            res.y = -this->y;
+            return res;
+        }
         Vector2& operator-=(Vector2 const&obj) {
             x -= obj.x;
             y -= obj.y;
@@ -79,6 +85,9 @@ namespace utils {
         double norm() {
             return sqrt(x*x + y*y);
         }
+        double norm2() {
+            return x*x + y*y;
+        }
         double dot(Vector2 obj) {
             double res;
             res = x * obj.x;
@@ -94,6 +103,4 @@ namespace utils {
         res.y = c * obj.y;
         return res;
     }
-    
-    const double G = 6.67430e-11;
 }

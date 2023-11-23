@@ -1,14 +1,4 @@
-#include "physics/physics.hpp"
 #include "appengine.hpp"
-#include <SFML/Graphics.hpp>
-#include <chrono>
-#include <iostream>
-#include <fstream>
-#include <thread>
-#include <mutex>
-#include <vector>
-#include <string>
-#include <unistd.h>
 
 void AppEngine::eventHandler(sf::Event event) {
     if (event.type == sf::Event::Closed) {
@@ -70,21 +60,28 @@ void AppEngine::setFramerateLimit(int frames) {
 }
 
 void AppEngine::universe_logic() {
-        BarnesHutTree *bht = new BarnesHutTree(this->bodies, this->universe_size, 0);
+    while(1) {
+        BarnesHutTree *bht = new BarnesHutTree(this->bodies, this->universe_size, 0.5);
         bht->walk(this->dt);
         delete bht;
+    }
 }
 
 
 void AppEngine::video_loop() {
     while (window->isOpen()) {
-        universe_logic();
+
+        for (auto &x : *bodies) {
+            x->updateShape(this->scale);
+        }
 
         // check all the window's events that were triggered since the last iteration of the loop
         sf::Event event;
         while (window->pollEvent(event)) {
             this->eventHandler(event);
         }
+    
+        // std::cout << (*it)->getPosition().x << " " << (*it)->getPosition().y << std::endl;
         if (mouseMoving) {
             sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
             sf::Vector2i change = oldMousePos - mousePos;
@@ -94,16 +91,18 @@ void AppEngine::video_loop() {
             this->window->setView(temp);
         }
         if (isViewFixed) {
-            view.setCenter(((BetterBody *)*it)->getShape()->getPosition());
+            view.setCenter((*it)->getShape().getPosition());
             window->setView(view);
         }
 
         // clear the window with black color
         window->clear(sf::Color::Black);
-        for (auto &x : *bodies) {
-            ((BetterBody *)x)->updateShapePos(this->scale);
-        }
 
+        // printf("%d\n", ++hours_passed);
+
+        for (auto &x : *bodies) {
+            window->draw(x->getShape());
+        }
 
         for (auto &x : drawables) {
             window->draw(*x);
@@ -119,22 +118,74 @@ void AppEngine::loadFromFile(std::string path) {
     fin >> count;
     // count = 7;
     for (int i = 0; i < count; i++) {
-        double mass, size;
+        double mass, rad;
         utils::Vector2 pos, vel;
         int r, g, b;
-        fin >> pos.x >> pos.y >> vel.x >> vel.y >> mass >> size >> r >> g >> b;
+        fin >> pos.x >> pos.y >> vel.x >> vel.y >> mass >> rad >> r >> g >> b;
 
-        BetterBody *sun = new BetterBody(mass, pos, vel);
-        sf::CircleShape *sun_shp = new sf::CircleShape(size, 100);
-        sun_shp->setFillColor(sf::Color(r, g, b));
-        sun->setShape(sun_shp, &this->drawables);
-        bodies->insert(sun);
+        sf::CircleShape shp(rad / this->scale + log10(rad)/M_PI/2 + 1, 100);
+        shp.setFillColor(sf::Color(r, g, b));
+        Body *sun = new Body(mass, rad, pos, vel, shp);
+        
+        bodies->push_back(sun);
     }
-    it = bodies->begin();
+    
     fin.close();
 }
 
 void AppEngine::start() {
-    loadFromFile("planets.txt");
+    // loadFromFile("planets.txt");
+    size_t N = 50, M = 50;
+    utils::Vector2 big_vel(1e5, 1e5);
+    double angle = 0;
+    double angle_step = 2 * M_PI / N;
+    double radius = 1e9;
+    double radius_step = 1e8;
+    double vel = 4e3;
+    double vel_step = 1e3;
+    bodies->push_back(new Body(1e27, 1e7, utils::Vector2(0, 0), big_vel, sf::CircleShape(1e7/this->scale, 100)));
+    for (size_t i = 0; i < N; i++) {
+        angle = 0;
+        for (size_t j = 0; j < M; j++) {
+            angle += 2 * M_PI / M;
+            utils::Vector2 pos;
+            pos.x = cos(angle) * radius;
+            pos.y = sin(angle) * radius;
+
+            utils::Vector2 velo;
+            velo.x = cos(angle + M_PI/2) * vel;
+            velo.y = sin(angle + M_PI/2) * vel;
+            bodies->push_back(new Body(1e19, 7e6, pos, big_vel + velo, sf::CircleShape(5e6/this->scale, 100)));
+        }
+        angle += angle_step;
+        radius += radius_step;
+        vel += vel_step;
+    }
+    angle = 0;
+    radius = 1e9;
+    vel = 4e3;
+
+    utils::Vector2 big_pos(1e10, 1e10);
+    bodies->push_back(new Body(1e27, 1e7, big_pos, -big_vel, sf::CircleShape(1e7/this->scale, 100)));
+    for (size_t i = 0; i < N; i++) {
+        angle = 0;
+        for (size_t j = 0; j < M; j++) {
+            angle += 2 * M_PI / M;
+            utils::Vector2 pos;
+            pos.x = cos(angle) * radius;
+            pos.y = sin(angle) * radius;
+
+            utils::Vector2 velo;
+            velo.x = cos(angle + M_PI/2) * vel;
+            velo.y = sin(angle + M_PI/2) * vel;
+            bodies->push_back(new Body(1e19, 7e6, big_pos + pos, -big_vel + velo, sf::CircleShape(5e6/this->scale, 100)));
+        }
+        angle += angle_step;
+        radius += radius_step;
+        vel += vel_step;
+    }
+    it = bodies->begin();
+    sf::Thread t1(&AppEngine::universe_logic, this);
+    t1.launch();
     video_loop();
 }

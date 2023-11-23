@@ -1,12 +1,14 @@
 #include "physics.hpp"
 #include <unistd.h>
+#include <chrono>
+
 
 utils::Vector2 PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
     double x = 0, y = 0;
     double total_mass = 0;
     for (auto& bod : vec) {
-        x += bod->getPos().x * bod->getMass();
-        y += bod->getPos().y * bod->getMass();
+        x += bod->getPosition().x * bod->getMass();
+        y += bod->getPosition().y * bod->getMass();
         total_mass += bod->getMass();
     }
     if (total_mass == 0) {
@@ -16,7 +18,10 @@ utils::Vector2 PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
 }
 
 utils::Vector2  PhysicsUtils::getCenterOfMass(Body *bod1, Body *bod2) {
-    return (bod1->getPos() * bod1->getMass() + bod2->getMass() * bod2->getPos()) / (bod1->getMass() + bod2->getMass());
+    return (bod1->getPosition() * bod1->getMass() + bod2->getMass() * bod2->getPosition()) / (bod1->getMass() + bod2->getMass());
+}
+utils::Vector2 PhysicsUtils::getCenterOfMass(double mass1, utils::Vector2 pos1, Body* bod2) {
+    return (mass1 * pos1 + bod2->getMass() * bod2->getPosition()) / (mass1 + bod2->getMass());
 }
 
 double PhysicsUtils::totalMass(std::set <Body *> vec) {
@@ -29,6 +34,9 @@ double PhysicsUtils::totalMass(std::set <Body *> vec) {
 double PhysicsUtils::totalMass(Body *bod1, Body *bod2) {
     return bod1->getMass() + bod2->getMass();
 }
+double PhysicsUtils::totalMass(double mass1, Body *bod2) {
+    return mass1 + bod2->getMass();
+}
 
 
 utils::Vector2  PhysicsUtils::getAccelFromForce(Body *bod, utils::Vector2  force) {
@@ -36,14 +44,14 @@ utils::Vector2  PhysicsUtils::getAccelFromForce(Body *bod, utils::Vector2  force
 }
 
 // Force applied by bod2 to bod1
-utils::Vector2  PhysicsUtils::getForce(Body *bod1, Body *bod2) {
-    utils::Vector2  r = bod1->getPos() - bod2->getPos();
+utils::Vector2  PhysicsUtils::getForce(Body *bod1, Body *bod2, double G, double epsilon/*=0*/) {
+    utils::Vector2  r = bod1->getPosition() - bod2->getPosition();
     
-    utils::Vector2  force(1, 1);
+    utils::Vector2 force(1, 1);
     double rn = r.norm();
-    force *= utils::G * bod1->getMass() * bod2->getMass() / (rn * rn);
+    force *= G * bod1->getMass() * bod2->getMass() / (rn * rn + epsilon);
 
-    r /= r.norm();
+    r /= rn;
     
     force *= r;
     return force;
@@ -58,117 +66,213 @@ utils::Vector2  PhysicsUtils::getForce(Body *bod1, Body *bod2) {
     }
     return false;
 }
-size_t chooseQuad(utils::Vector2  pos, utils::Vector2  top, utils::Vector2  size) {
-    utils::Vector2  mid = top + size * 0.5;
-    if (pos.x <= mid.x) {
-        if (pos.y <= mid.y) {
+size_t chooseQuad(utils::Vector2  pos, utils::Vector2  top, utils::Vector2  half_size) {
+    utils::Vector2  mid = top + half_size;
+    if (pos.x < mid.x) {
+        if (pos.y < mid.y) {
             return 0;
         }
         return 2;
     }
-    if (pos.y <= mid.y) {
+    if (pos.y <= mid.y)
         return 1;
-    }
     return 3;
 }
 utils::Vector2 getPosQuad(size_t quad, utils::Vector2  top, utils::Vector2  half_size) {
-    if (quad == 0) {
+    if (quad == 0)
         return top;
-    }
-    if (quad == 1) {
+
+    if (quad == 1)
         return utils::Vector2 (top.x + half_size.x, top.y);
-    }
-    if (quad == 2) {
+
+    if (quad == 2)
         return utils::Vector2 (top.x, top.y + half_size.y);
-    }
+
     return utils::Vector2 (top.x + half_size.x, top.y + half_size.y);
 }
 void BarnesHutTree::insertBody(barnes_hut_node* &it, Body *body, utils::Vector2 top, utils::Vector2 size) {
     if (it == NULL) {
-        it = new barnes_hut_node;
-        it->top_corner = top;
-        it->size = size;
-        it->body = body;
-        
-        for (int i = 0; i < 4; i++) {
-            it->children[i] = NULL;
-        }
+        it = new barnes_hut_node(top, size, false, body);
         return;
     }
     utils::Vector2  half_size = size * 0.5;
-    
-    size_t bquad = chooseQuad(body->getPos(), top, size);
-    // External node
-    if (this->bodies->find(it->body) != this->bodies->end()) {
-        Body *c = it->body;
-        size_t cquad = chooseQuad(it->body->getPos(), top, size);
-        it->top_corner = top;
-        it->size = half_size;
+    size_t bquad = chooseQuad(body->getPosition(), top, half_size);
 
-        it->body = new Body(PhysicsUtils::totalMass(c, body), PhysicsUtils::getCenterOfMass(c, body));
+    // External node
+    if (it->internal == false) {
+        Body *c = it->body;
+        size_t cquad = chooseQuad(c->getPosition(), top, half_size);
+
+        it->internal = true;
+        it->body = NULL;
+        it->mass = PhysicsUtils::totalMass(c, body);
+        it->center = PhysicsUtils::getCenterOfMass(c, body);
+        it->max_rad = std::max(c->getRadius(), body->getRadius());
+        
         insertBody(it->children[cquad], c, getPosQuad(cquad, top, half_size), half_size);
         insertBody(it->children[bquad], body, getPosQuad(bquad, top, half_size), half_size);
         return;
     }
-    it->body->setMass(PhysicsUtils::totalMass(it->body, body));
-    it->body->setPos(PhysicsUtils::getCenterOfMass(it->body, body));
+
+    // Internal node
+    it->center = PhysicsUtils::getCenterOfMass(it->mass, it->center, body);
+    it->mass = PhysicsUtils::totalMass(it->mass, body);
+    it->max_rad = std::max(it->max_rad, body->getRadius());
+
     insertBody(it->children[bquad], body, getPosQuad(bquad, top, half_size), half_size);
 }
-
-
 
 void BarnesHutTree::constructTree() {
     for (auto &x: *(this->bodies)) {
         insertBody(this->root, x, this->corner, this->size);
     }
 }
-
-void BarnesHutTree::computeNetForceHelper(utils::Vector2  &sum, barnes_hut_node *it, Body *body) {
+static int count = 0;
+utils::Vector2 BarnesHutTree::computeNetForceHelper(barnes_hut_node *it, Body *body, double epsilon) {
+    count++;
     if (it == NULL) {
-        return;
+        return utils::Vector2(0, 0);
     }
     if (it->body == body) {
-        return;
+        return utils::Vector2(0, 0);
     }
+    if (it->internal == false) {
+        return PhysicsUtils::getForce(it->body, body, this->G, epsilon);
+    }
+
     double s = it->size.norm();
-    double d = (it->body->getPos() - body->getPos()).norm();
-    
+    double d = (it->center - body->getPosition()).norm();
     if (s / d < theta) {
-        sum += PhysicsUtils::getForce(it->body, body);
-        
-        return;
+        Body bd(it->mass, it->center);
+        return PhysicsUtils::getForce(&bd, body, this->G, epsilon);
     } 
-    bool ok = 0;
+
+    utils::Vector2 sum(0, 0);
     for (int i = 0; i < 4; i++) {
-        if (it->children[i] != NULL)
-            ok = 1;
-        computeNetForceHelper(sum, it->children[i], body);
+        if (it->children[i] != NULL) {
+            sum += computeNetForceHelper(it->children[i], body, epsilon);
+        }
     }
-    if (!ok) {
-        sum += PhysicsUtils::getForce(it->body, body);
-    }
-    
+
+    return sum;
 }
 
-utils::Vector2  BarnesHutTree::computeNetForce(Body *body) {
-    utils::Vector2 force(0, 0);
-    computeNetForceHelper(force, this->root, body);
+void BarnesHutTree::applyNetForce(Body *body) {
+    utils::Vector2 force = computeNetForceHelper(this->root, body, 0.01);
+    body->setAcceleration(force / body->getMass());
+}
+
+void BarnesHutTree::plastic_collision(Body *a, Body * b) {
+    if (a == b) {
+        return;
+    }
+    utils::Vector2 distVec = a->getPosition() - b->getPosition();
+    double dist = distVec.norm();
+    double minDist = a->getRadius() + b->getRadius();
+    double amass = a->getMass(), bmass = b->getMass();
+    utils::Vector2 avel = a->getVelocity(), bvel = b->getVelocity();
+   
+    if (dist > minDist)
+        return;
+    std::cout << dist << " " << minDist << "\n";
+    Body *bigger, *smaller;
+    if (a->getMass() > b->getMass()) {
+        bigger = a;
+        smaller = b;
+    } else {
+        bigger = b;
+        smaller = a;
+    }
+    this->bodies->erase(std::remove(this->bodies->begin(), this->bodies->end(), smaller), this->bodies->end());
+
+    double newMass = bigger->getMass() + smaller->getMass();
+    bigger->setVelocity((bigger->getVelocity() * bigger->getMass() + smaller->getMass() * smaller->getVelocity())/newMass);
+    double sr = smaller->getRadius(), br = bigger->getRadius();
+    bigger->setRadius(pow(sr * sr * sr + br * br * br, 1.0d/3));
+    bigger->setMass(newMass);
+
+}
+void BarnesHutTree::elastic_collision(Body *a, Body * b) {
+    if (a == b) {
+        return;
+    }
+    utils::Vector2 distVec = a->getPosition() - b->getPosition();
+    double dist = distVec.norm();
+    double minDist = a->getRadius() + b->getRadius();
+    double amass = a->getMass(), bmass = b->getMass();
+    utils::Vector2 avel = a->getVelocity(), bvel = b->getVelocity();
+    if (dist > minDist)
+        return;
     
-    return force;
+    distVec /= dist;
+
+    utils::Vector2 mtd = distVec * (minDist - dist);
+
+    a->setPosition(a->getPosition() + mtd / 2);
+    b->setPosition(b->getPosition() - mtd / 2);
+    utils::Vector2 apos = a->getPosition(), bpos = b->getPosition();
+
+    utils::Vector2 va = avel - 2 * bmass/(amass + bmass) * (avel - bvel).dot(apos-bpos)/(apos-bpos).norm2()* (apos - bpos);
+    utils::Vector2 vb = bvel - 2 * amass/(amass + bmass) * (bvel - avel).dot(bpos - apos)/(bpos-apos).norm2() *(bpos-apos);
+
+    a->setVelocity(va);
+    b->setVelocity(vb);
+
+}
+void BarnesHutTree::collide(barnes_hut_node *it, Body *body) {
+    if (!it->internal) {
+        this->plastic_collision(it->body, body);
+        return;
+    }
+    for (int i = 0; i < 4; i++) {
+        if (it->children[i]) {
+            if (it->children[i]->internal) {
+                double dist = body->getRadius() + it->children[i]->max_rad;
+                utils::Vector2 bpos = body->getPosition();
+                bool outside_range = bpos.x + dist < it->children[i]->top_corner.x || bpos.x - dist > it->children[i]->top_corner.x + it->children[i]->size.x
+                                  || bpos.y + dist < it->children[i]->top_corner.y || bpos.y - dist > it->children[i]->top_corner.y + it->children[i]->size.y;
+                if (!outside_range) {
+                    this->collide(it->children[i], body);
+                }
+            } else {
+                collide(it->children[i], body);
+            }
+        }
+    }
 }
 
 void BarnesHutTree::walk(double dt) {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
+
     this->constructTree();
+    
+    auto t1 = high_resolution_clock::now();
     for (auto &x : *(this->bodies)) {
-        utils::Vector2  force = this->computeNetForce(x);
-        x->setAcceleration(PhysicsUtils::getAccelFromForce(x, force));
+        // this->applyNetForce(x);
+        this->pool->QueueJob([&] {this->applyNetForce(x);});
     }
+    this->pool->QueueJob([] {usleep(10000);});
+
+    while (this->pool->busy());
+    auto t2 = high_resolution_clock::now();
+
+    duration<double, std::milli> ms_double = t2 - t1;
+    std::cout << ms_double.count() << "ms\n";
+    
     for (auto &x: *(this->bodies)) {
         x->updateMovement(dt);
     }
+
+    for (auto &x : *(this->bodies)) {
+        this->collide(this->root, x);
+    }
+
     delete this->root;
     for (auto x = this->bodies->begin(); x != this->bodies->end(); ) {
-        if (this->is_purgable((*x)->getPos())) {
+        if (this->is_purgable((*x)->getPosition())) {
             delete *x;
             x = this->bodies->erase(x);
             if (x == this->bodies->end()) {
