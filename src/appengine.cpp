@@ -123,84 +123,97 @@ void AppEngine::loadFromFile(std::string path) {
     
     fin.close();
 }
-void AppEngine::universe_logic() {
+void AppEngine::universe_logic(utils::Vector2 size, double theta, double G, double epsilon, double scale) {
+    this->scale = scale;
     while(1) {
-        BarnesHutTree *bht = new BarnesHutTree(this->bodies, this->universe_size, 0.5);
+        BarnesHutTree *bht = new BarnesHutTree(this->bodies, size, G, epsilon);
         bht->walk(this->dt);
         delete bht;
     }
 }
 void AppEngine::start() {
     // loadFromFile("planets.txt");
-    size_t N = 50, M = 50;
-    utils::Vector2 big_vel(1e5, 1e5);
-    double angle = 0;
-    double angle_step = 2 * M_PI / N;
-    double radius = 1e9;
-    double radius_step = 1e8;
-    double vel = 4e3;
-    double vel_step = 1e3;
-    bodies->push_back(new Body(1e29, 1e7, utils::Vector2(0, 0), big_vel, sf::CircleShape(1e7/this->scale, 100)));
-    for (size_t i = 0; i < N; i++) {
-        angle = 0;
-        for (size_t j = 0; j < M; j++) {
-            angle += 2 * M_PI / M;
-            utils::Vector2 pos;
-            pos.x = cos(angle) * radius;
-            pos.y = sin(angle) * radius;
+    // size_t N = 50, M = 50;
+    // utils::Vector2 size = {1e14, 1e14};
+    // double theta = 0.5;
+    // double G = 6.67430e-11;
+    // double epsilon = 0.001;
 
-            utils::Vector2 velo;
-            velo.x = cos(angle + M_PI/2) * vel;
-            velo.y = sin(angle + M_PI/2) * vel;
-            bodies->push_back(new Body(1e19, 7e6, pos, big_vel + velo, sf::CircleShape(5e6/this->scale, 100)));
-        }
-        angle += angle_step;
-        radius += radius_step;
-        vel += vel_step;
-    }
-    angle = 0;
-    radius = 1e9;
-    vel = 4e3;
 
-    utils::Vector2 big_pos(1e10, 1e10);
-    bodies->push_back(new Body(1e29, 1e7, big_pos, -big_vel, sf::CircleShape(1e7/this->scale, 100)));
-    for (size_t i = 0; i < N; i++) {
-        angle = 0;
-        for (size_t j = 0; j < M; j++) {
-            angle += 2 * M_PI / M;
-            utils::Vector2 pos;
-            pos.x = cos(angle) * radius;
-            pos.y = sin(angle) * radius;
+    // utils::Vector2 big_vel(1e5, 1e5);
+    // double angle = 0;
+    // double angle_step = 2 * M_PI / N;
+    // double radius = 1e9;
+    // double radius_step = 1e8;
+    // double vel = 4e3;
+    // double vel_step = 1e3;
+    // bodies->push_back(new Body(1e29, 1e7, utils::Vector2(0, 0), big_vel, sf::CircleShape(1e7/this->scale, 100)));
+    // for (size_t i = 0; i < N; i++) {
+    //     angle = 0;
+    //     for (size_t j = 0; j < M; j++) {
+    //         angle += 2 * M_PI / M;
+    //         utils::Vector2 pos;
+    //         pos.x = cos(angle) * radius;
+    //         pos.y = sin(angle) * radius;
 
-            utils::Vector2 velo;
-            velo.x = cos(angle + M_PI/2) * vel;
-            velo.y = sin(angle + M_PI/2) * vel;
-            bodies->push_back(new Body(1e19, 7e6, big_pos + pos, -big_vel + velo, sf::CircleShape(5e6/this->scale, 100)));
-        }
-        angle += angle_step;
-        radius += radius_step;
-        vel += vel_step;
-    }
-    it = bodies->begin();
-    
-    
-    // srand(time(NULL));
-    // int ubp = 1e3, lbp = -1e3;
-    // int ubv = 10, lbv = -10;
-    // bodies->push_back(new Body(100e2, 10, {0, 0}, {0, 0}, sf::CircleShape(10,100)));
-    // for (int i = 0; i < N; i++) {
-    //     utils::Vector2 pos;
-    //     pos.x = (rand() % ((ubp - lbp + 1) * 100)) / 100.f + lbp;
-    //     pos.y = (rand() % ((ubp - lbp + 1) * 100)) / 100.f + lbp;
-    //     utils::Vector2 vel;
-    //     vel.x = (rand() % (ubv - lbv + 1)) + lbv;
-    //     vel.y = (rand() % (ubv - lbv + 1)) + lbv;
-    //     bool is_big = 0;
-    //     if (rand() % 100 == 0)
-    //         is_big = 1;
-    //     bodies->push_back(new Body(is_big ? 100e2 : 100, is_big ? 10 : 1, pos, vel, sf::CircleShape(1,100)));
+    //         utils::Vector2 velo;
+    //         velo.x = cos(angle + M_PI/2) * vel;
+    //         velo.y = sin(angle + M_PI/2) * vel;
+    //         bodies->push_back(new Body(1e20, 7e6, pos, big_vel + velo, sf::CircleShape(5e6/this->scale, 100)));
+    //     }
+    //     angle += angle_step;
+    //     radius += radius_step;
+    //     vel += vel_step;
     // }
-    sf::Thread t1(&AppEngine::universe_logic, this);
+    // angle = 0;
+    // radius = 1e9;
+    // vel = 4e3;
+
+    // utils::Vector2 big_pos(1e10, 1e10);
+    // bodies->push_back(new Body(1e30, 1e7, big_pos, -big_vel, sf::CircleShape(1e7/this->scale, 100)));
+    // for (size_t i = 0; i < N; i++) {
+    //     angle = 0;
+    //     for (size_t j = 0; j < M; j++) {
+    //         angle += 2 * M_PI / M;
+    //         utils::Vector2 pos;
+    //         pos.x = cos(angle) * radius;
+    //         pos.y = sin(angle) * radius;
+
+    //         utils::Vector2 velo;
+    //         velo.x = cos(angle + M_PI/2) * vel;
+    //         velo.y = sin(angle + M_PI/2) * vel;
+    //         bodies->push_back(new Body(1e20, 7e6, big_pos + pos, -big_vel + velo, sf::CircleShape(5e6/this->scale, 100)));
+    //     }
+    //     angle += angle_step;
+    //     radius += radius_step;
+    //     vel += vel_step;
+    // }
+    // it = bodies->begin();
+    
+    
+    size_t N = 5000, M = 1;
+    utils::Vector2 size = {1e5, 1e5};
+    double theta = 0.5;
+    double G = 1;
+    double epsilon = 0.001;
+
+    srand(time(NULL));
+    int ubp = 1e3, lbp = -1e3;
+    int ubv = 10, lbv = -10;
+    // bodies->push_back(new Body(100e2, 10, {0, 0}, {0, 0}, sf::CircleShape(10,100)));
+    for (int i = 0; i < N * M; i++) {
+        utils::Vector2 pos;
+        pos.x = (rand() % ((ubp - lbp + 1) * 10000)) / 10000.f + lbp;
+        pos.y = (rand() % ((ubp - lbp + 1) * 10000)) / 10000.f + lbp;
+        utils::Vector2 vel;
+        vel.x = (rand() % (ubv - lbv + 1)) + lbv;
+        vel.y = (rand() % (ubv - lbv + 1)) + lbv;
+        bool is_big = 0;
+        if (rand() % 100 == 0)
+            is_big = 0;
+        bodies->push_back(new Body(is_big ? 100e2 : 10000, is_big ? 10 : 1, pos, vel, sf::CircleShape(1,100)));
+    }
+    sf::Thread t1(std::bind(&AppEngine::universe_logic, this, size, theta, G, epsilon, 1));
     t1.launch();
     video_loop();
 }

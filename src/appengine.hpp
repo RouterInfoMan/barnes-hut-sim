@@ -32,11 +32,10 @@ private:
 
     std::vector <Body *> *bodies;
     // Size of universe (real, i calculated it)
-    const utils::Vector2 universe_size = {1e14, 1e14};
     // One day
-    const double dt = 10;
+    const double dt = 0.01;
     // Scale
-    const double scale = 1e6;
+    double scale = 1e6;
 
     sf::Vector2f normalize_in_view(utils::Vector2 pos) {
         pos /= scale;
@@ -62,6 +61,6 @@ public:
     void start();
     void setFramerateLimit(int framerate);
     void video_loop();
-    void universe_logic();
+    void universe_logic(utils::Vector2 size, double theta = 0.5, double G = 6.67430e-11, double epsilon = 0, double scale = 1e6);
 
 };
