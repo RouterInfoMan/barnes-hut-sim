@@ -82,13 +82,16 @@ namespace utils {
             y /= c;
              return *this;
         }
+        bool operator==(Vector2 const&obj) {
+            return (this->x == obj.x && this->y == obj.y);
+        }
         double norm() {
             return sqrt(x*x + y*y);
         }
         double norm2() {
             return x*x + y*y;
         }
-        double dot(Vector2 obj) {
+        double dot(Vector2 const &obj) {
             double res;
             res = x * obj.x;
             res += y * obj.y;

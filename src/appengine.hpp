@@ -34,7 +34,7 @@ private:
     // Size of universe (real, i calculated it)
     const utils::Vector2 universe_size = {1e14, 1e14};
     // One day
-    const double dt = 60;
+    const double dt = 10;
     // Scale
     const double scale = 1e6;
 

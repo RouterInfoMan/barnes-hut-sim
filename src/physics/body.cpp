@@ -32,8 +32,9 @@ void Body::setShape(sf::CircleShape shp) {
     this->shp = shp;
 }
 void Body::updateShape(double scale) {
-    this->shp.setPosition(this->pos.x / scale, this->pos.y / scale);
     this->shp.setRadius(this->radius/scale);
+    this->shp.setOrigin(this->shp.getRadius(), this->shp.getRadius());
+    this->shp.setPosition(this->pos.x / scale, this->pos.y / scale);
 }
 
 double Body::getRadius() {

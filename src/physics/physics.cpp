@@ -12,7 +12,7 @@ utils::Vector2 PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
         total_mass += bod->getMass();
     }
     if (total_mass == 0) {
-        exit(1);
+        return {7, 7};
     }
     return utils::Vector2 (x / total_mass, y / total_mass);
 }
@@ -174,7 +174,7 @@ void BarnesHutTree::plastic_collision(Body *a, Body * b) {
    
     if (dist > minDist)
         return;
-    std::cout << dist << " " << minDist << "\n";
+    // std::cout << dist << " " << minDist << "\n";
     Body *bigger, *smaller;
     if (a->getMass() > b->getMass()) {
         bigger = a;
@@ -188,7 +188,7 @@ void BarnesHutTree::plastic_collision(Body *a, Body * b) {
     double newMass = bigger->getMass() + smaller->getMass();
     bigger->setVelocity((bigger->getVelocity() * bigger->getMass() + smaller->getMass() * smaller->getVelocity())/newMass);
     double sr = smaller->getRadius(), br = bigger->getRadius();
-    bigger->setRadius(pow(sr * sr * sr + br * br * br, 1.0d/3));
+    bigger->setRadius(pow(sr * sr * sr + br * br * br, 1.0f/3));
     bigger->setMass(newMass);
 
 }
@@ -208,15 +208,21 @@ void BarnesHutTree::elastic_collision(Body *a, Body * b) {
 
     utils::Vector2 mtd = distVec * (minDist - dist);
 
-    a->setPosition(a->getPosition() + mtd / 2);
-    b->setPosition(b->getPosition() - mtd / 2);
+    if (amass > bmass) {
+        b->setPosition(b->getPosition() - mtd);
+    } else {
+        a->setPosition(a->getPosition() + mtd);
+    }
+    
     utils::Vector2 apos = a->getPosition(), bpos = b->getPosition();
 
-    utils::Vector2 va = avel - 2 * bmass/(amass + bmass) * (avel - bvel).dot(apos-bpos)/(apos-bpos).norm2()* (apos - bpos);
+    utils::Vector2 va = avel - 2 * bmass/(amass + bmass) * (avel - bvel).dot(apos - bpos)/(apos-bpos).norm2()* (apos - bpos);
     utils::Vector2 vb = bvel - 2 * amass/(amass + bmass) * (bvel - avel).dot(bpos - apos)/(bpos-apos).norm2() *(bpos-apos);
 
-    a->setVelocity(va);
-    b->setVelocity(vb);
+
+    /// Losing energy
+    a->setVelocity(va * 0.99);
+    b->setVelocity(vb * 0.99);
 
 }
 void BarnesHutTree::collide(barnes_hut_node *it, Body *body) {
@@ -248,26 +254,26 @@ void BarnesHutTree::walk(double dt) {
     using std::chrono::milliseconds;
 
     this->constructTree();
-    
+    for (auto &x : *(this->bodies)) {
+        this->collide(this->root, x);
+    }
     auto t1 = high_resolution_clock::now();
     for (auto &x : *(this->bodies)) {
         // this->applyNetForce(x);
         this->pool->QueueJob([&] {this->applyNetForce(x);});
     }
-    this->pool->QueueJob([] {usleep(10000);});
-
-    while (this->pool->busy());
     auto t2 = high_resolution_clock::now();
 
     duration<double, std::milli> ms_double = t2 - t1;
-    std::cout << ms_double.count() << "ms\n";
     
+    if (ms_double.count() < 10) {
+        usleep(10000 - ms_double.count() * 1000);
+    }
+    t2 = high_resolution_clock::now();
+    ms_double = t2 - t1;
+    std::cout << ms_double.count() << "ms\n";
     for (auto &x: *(this->bodies)) {
         x->updateMovement(dt);
-    }
-
-    for (auto &x : *(this->bodies)) {
-        this->collide(this->root, x);
     }
 
     delete this->root;

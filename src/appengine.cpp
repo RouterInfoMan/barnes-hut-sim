@@ -59,15 +59,6 @@ void AppEngine::setFramerateLimit(int frames) {
     this->window->setFramerateLimit(frames);
 }
 
-void AppEngine::universe_logic() {
-    while(1) {
-        BarnesHutTree *bht = new BarnesHutTree(this->bodies, this->universe_size, 0.5);
-        bht->walk(this->dt);
-        delete bht;
-    }
-}
-
-
 void AppEngine::video_loop() {
     while (window->isOpen()) {
 
@@ -132,7 +123,13 @@ void AppEngine::loadFromFile(std::string path) {
     
     fin.close();
 }
-
+void AppEngine::universe_logic() {
+    while(1) {
+        BarnesHutTree *bht = new BarnesHutTree(this->bodies, this->universe_size, 0.5);
+        bht->walk(this->dt);
+        delete bht;
+    }
+}
 void AppEngine::start() {
     // loadFromFile("planets.txt");
     size_t N = 50, M = 50;
@@ -143,7 +140,7 @@ void AppEngine::start() {
     double radius_step = 1e8;
     double vel = 4e3;
     double vel_step = 1e3;
-    bodies->push_back(new Body(1e27, 1e7, utils::Vector2(0, 0), big_vel, sf::CircleShape(1e7/this->scale, 100)));
+    bodies->push_back(new Body(1e29, 1e7, utils::Vector2(0, 0), big_vel, sf::CircleShape(1e7/this->scale, 100)));
     for (size_t i = 0; i < N; i++) {
         angle = 0;
         for (size_t j = 0; j < M; j++) {
@@ -166,7 +163,7 @@ void AppEngine::start() {
     vel = 4e3;
 
     utils::Vector2 big_pos(1e10, 1e10);
-    bodies->push_back(new Body(1e27, 1e7, big_pos, -big_vel, sf::CircleShape(1e7/this->scale, 100)));
+    bodies->push_back(new Body(1e29, 1e7, big_pos, -big_vel, sf::CircleShape(1e7/this->scale, 100)));
     for (size_t i = 0; i < N; i++) {
         angle = 0;
         for (size_t j = 0; j < M; j++) {
@@ -185,6 +182,24 @@ void AppEngine::start() {
         vel += vel_step;
     }
     it = bodies->begin();
+    
+    
+    // srand(time(NULL));
+    // int ubp = 1e3, lbp = -1e3;
+    // int ubv = 10, lbv = -10;
+    // bodies->push_back(new Body(100e2, 10, {0, 0}, {0, 0}, sf::CircleShape(10,100)));
+    // for (int i = 0; i < N; i++) {
+    //     utils::Vector2 pos;
+    //     pos.x = (rand() % ((ubp - lbp + 1) * 100)) / 100.f + lbp;
+    //     pos.y = (rand() % ((ubp - lbp + 1) * 100)) / 100.f + lbp;
+    //     utils::Vector2 vel;
+    //     vel.x = (rand() % (ubv - lbv + 1)) + lbv;
+    //     vel.y = (rand() % (ubv - lbv + 1)) + lbv;
+    //     bool is_big = 0;
+    //     if (rand() % 100 == 0)
+    //         is_big = 1;
+    //     bodies->push_back(new Body(is_big ? 100e2 : 100, is_big ? 10 : 1, pos, vel, sf::CircleShape(1,100)));
+    // }
     sf::Thread t1(&AppEngine::universe_logic, this);
     t1.launch();
     video_loop();
