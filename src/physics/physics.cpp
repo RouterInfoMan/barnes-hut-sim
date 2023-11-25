@@ -208,21 +208,18 @@ void BarnesHutTree::elastic_collision(Body *a, Body * b) {
 
     utils::Vector2 mtd = distVec * (minDist - dist);
 
-    if (amass > bmass) {
-        b->setPosition(b->getPosition() - mtd);
-    } else {
-        a->setPosition(a->getPosition() + mtd);
-    }
+    a->setPosition(a->getPosition() + mtd * bmass/(bmass + amass));
+    b->setPosition(b->getPosition() - mtd * amass/(bmass + amass));
     
     utils::Vector2 apos = a->getPosition(), bpos = b->getPosition();
 
-    utils::Vector2 va = avel - 2 * bmass/(amass + bmass) * (avel - bvel).dot(apos - bpos)/(apos-bpos).norm2()* (apos - bpos);
-    utils::Vector2 vb = bvel - 2 * amass/(amass + bmass) * (bvel - avel).dot(bpos - apos)/(bpos-apos).norm2() *(bpos-apos);
+    utils::Vector2 va = avel - 2 * bmass/(amass + bmass) * (avel - bvel).dot(apos - bpos)/(apos-bpos).norm2() * (apos - bpos);
+    utils::Vector2 vb = bvel - 2 * amass/(amass + bmass) * (bvel - avel).dot(bpos - apos)/(bpos-apos).norm2() * (bpos - apos);
 
 
     /// Losing energy
-    a->setVelocity(va * 0.99);
-    b->setVelocity(vb * 0.99);
+    a->setVelocity(va * 0.90);
+    b->setVelocity(vb * 0.90);
 
 }
 void BarnesHutTree::collide(barnes_hut_node *it, Body *body) {

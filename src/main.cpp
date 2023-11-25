@@ -8,7 +8,7 @@
 int main(int argc, char *argv[]) {
     AppEngine *app = NULL;
     if (argc == 1) {
-        app = new AppEngine({1920, 1080}, "catastrophes");
+        app = new AppEngine({1920, 1080}, "N-Body Simulation");
     }
     if (app == NULL) {
         return 1;

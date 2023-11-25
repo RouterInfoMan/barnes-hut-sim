@@ -131,6 +131,35 @@ void AppEngine::universe_logic(utils::Vector2 size, double theta, double G, doub
         delete bht;
     }
 }
+
+sf::Thread *AppEngine::random_bodies() {
+    size_t N = 100000, M = 1;
+    utils::Vector2 size = {1e10, 1e10};
+    utils::Vector2 range = {2 * 1920, 2 * 1080};
+    double theta = 0.5;
+    double G = 1;
+    double epsilon = 0.001;
+
+    srand(time(NULL));
+    int ubpx = range.x/2, lbpx = -range.x/2;
+    int ubpy = range.y/2, lbpy = -range.y/2;
+    int ubv = 0, lbv = -0;
+    // bodies->push_back(new Body(100e2, 10, {0, 0}, {0, 0}, sf::CircleShape(10,100)));
+    for (int i = 0; i < N * M; i++) {
+        utils::Vector2 pos;
+        pos.x = (rand() % ((ubpx - lbpx + 1) * 10000)) / 10000.f + lbpx;
+        pos.y = (rand() % ((ubpy - lbpy + 1) * 10000)) / 10000.f + lbpy;
+        utils::Vector2 vel;
+        vel.x = (rand() % (ubv - lbv + 1)) + lbv;
+        vel.y = (rand() % (ubv - lbv + 1)) + lbv;
+        bool is_big = 0;
+        if (rand() % 100 == 0)
+            is_big = 0;
+        bodies->push_back(new Body(is_big ? 100e2 : 10000, is_big ? 10 : 1, pos, vel, sf::CircleShape(1,100)));
+    }
+    return new sf::Thread(std::bind(&AppEngine::universe_logic, this, size, theta, G, epsilon, 1));
+}
+
 void AppEngine::start() {
     // loadFromFile("planets.txt");
     // size_t N = 50, M = 50;
@@ -189,31 +218,8 @@ void AppEngine::start() {
     //     vel += vel_step;
     // }
     // it = bodies->begin();
-    
-    
-    size_t N = 5000, M = 1;
-    utils::Vector2 size = {1e5, 1e5};
-    double theta = 0.5;
-    double G = 1;
-    double epsilon = 0.001;
+    sf::Thread *t = random_bodies();
+    t->launch();
 
-    srand(time(NULL));
-    int ubp = 1e3, lbp = -1e3;
-    int ubv = 10, lbv = -10;
-    // bodies->push_back(new Body(100e2, 10, {0, 0}, {0, 0}, sf::CircleShape(10,100)));
-    for (int i = 0; i < N * M; i++) {
-        utils::Vector2 pos;
-        pos.x = (rand() % ((ubp - lbp + 1) * 10000)) / 10000.f + lbp;
-        pos.y = (rand() % ((ubp - lbp + 1) * 10000)) / 10000.f + lbp;
-        utils::Vector2 vel;
-        vel.x = (rand() % (ubv - lbv + 1)) + lbv;
-        vel.y = (rand() % (ubv - lbv + 1)) + lbv;
-        bool is_big = 0;
-        if (rand() % 100 == 0)
-            is_big = 0;
-        bodies->push_back(new Body(is_big ? 100e2 : 10000, is_big ? 10 : 1, pos, vel, sf::CircleShape(1,100)));
-    }
-    sf::Thread t1(std::bind(&AppEngine::universe_logic, this, size, theta, G, epsilon, 1));
-    t1.launch();
     video_loop();
 }
