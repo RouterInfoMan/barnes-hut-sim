@@ -52,7 +52,7 @@ private:
     std::vector <Body *> *bodies;
     // Size of universe (real, i calculated it)
     // One day
-    const double dt = 0.001;
+    const double dt = 0.01;
     // Scale
     double scale = 1e6;
 

@@ -293,6 +293,16 @@ void BarnesHutTree::walkCUDA(float dt) {
     //     this->collide(this->root, x);
     // }
 
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
+
+
+    auto t1 = high_resolution_clock::now();
+
+    
+
     size_t length = this->bodies->size();
     CUDABody_t *bodies = (CUDABody_t *)malloc(sizeof(CUDABody_t) * length);
     for (int i = 0; i < length; i++) {
@@ -300,11 +310,16 @@ void BarnesHutTree::walkCUDA(float dt) {
         bodies[i].vel = make_float2((*this->bodies)[i]->getVelocity().x, (*this->bodies)[i]->getVelocity().y);
         bodies[i].mass = (*this->bodies)[i]->getMass();
     }
+    
     walkCUDADevice(bodies, length, this->G, dt);
     for (int i = 0; i < length; i++) {
         (*this->bodies)[i]->setPosition(utils::Vector2(bodies[i].pos.x, bodies[i].pos.y));
         (*this->bodies)[i]->setVelocity(utils::Vector2(bodies[i].vel.x, bodies[i].vel.y));
     }
+
+    auto t2 = high_resolution_clock::now();
+    duration<double, std::milli> ms_double = t2 - t1;
+    std::cout << ms_double.count() << "ms\n";
     // sleep(1);
 
     // delete this->root;

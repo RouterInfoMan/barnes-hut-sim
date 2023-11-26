@@ -138,7 +138,7 @@ float genFloatInRange(int upper, int lower) {
 }
 
 sf::Thread *AppEngine::random_bodies() {
-    size_t N = (1 << 11), M = 1;
+    size_t N = (1 << 16), M = 1;
     utils::Vector2 size = {1e10, 1e10};
     utils::Vector2 range = {1920/2, 1080/2};
     double theta = 0.5;

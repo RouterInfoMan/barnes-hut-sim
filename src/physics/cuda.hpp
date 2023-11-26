@@ -18,8 +18,8 @@ typedef struct CUDABody {
 } CUDABody_t;
 
 typedef struct CUDABarnesHutNode {
-
-
+    int internal;
+    CUDABody_t data;
     struct CUDABarnesHutNode *tl, *tr, *bl, *br;
 } CUDABarnesHutNode_t;
 
