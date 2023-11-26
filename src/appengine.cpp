@@ -127,15 +127,20 @@ void AppEngine::universe_logic(utils::Vector2 size, double theta, double G, doub
     this->scale = scale;
     while(1) {
         BarnesHutTree *bht = new BarnesHutTree(this->bodies, size, G, epsilon);
-        bht->walk(this->dt);
+        bht->walkCUDA(this->dt);
         delete bht;
     }
 }
 
+float genFloatInRange(int upper, int lower) {
+    int deccnt = 1e5;
+    return (rand() % ((upper - lower + 1)  * deccnt))/deccnt + lower;
+}
+
 sf::Thread *AppEngine::random_bodies() {
-    size_t N = 100000, M = 1;
+    size_t N = (1 << 11), M = 1;
     utils::Vector2 size = {1e10, 1e10};
-    utils::Vector2 range = {2 * 1920, 2 * 1080};
+    utils::Vector2 range = {1920/2, 1080/2};
     double theta = 0.5;
     double G = 1;
     double epsilon = 0.001;
@@ -143,20 +148,38 @@ sf::Thread *AppEngine::random_bodies() {
     srand(time(NULL));
     int ubpx = range.x/2, lbpx = -range.x/2;
     int ubpy = range.y/2, lbpy = -range.y/2;
-    int ubv = 0, lbv = -0;
-    // bodies->push_back(new Body(100e2, 10, {0, 0}, {0, 0}, sf::CircleShape(10,100)));
-    for (int i = 0; i < N * M; i++) {
+    int ubvx = 0, lbvx = -0;
+    int ubvy = 0, lbvy = -0;
+    // bodies->push_back(new Body(100000e2, 10, {0, 0}, {0, 0}, sf::CircleShape(10,100)));
+    for (int i = 0; i < N / 2; i++) {
         utils::Vector2 pos;
         pos.x = (rand() % ((ubpx - lbpx + 1) * 10000)) / 10000.f + lbpx;
         pos.y = (rand() % ((ubpy - lbpy + 1) * 10000)) / 10000.f + lbpy;
         utils::Vector2 vel;
-        vel.x = (rand() % (ubv - lbv + 1)) + lbv;
-        vel.y = (rand() % (ubv - lbv + 1)) + lbv;
+        vel.x = (rand() % (ubvx - lbvx + 1)) + lbvx;
+        vel.y = (rand() % (ubvy - lbvy + 1)) + lbvy;
+        bool is_big = 0;
+        if (rand() % 100 == 0)
+            is_big = 0;
+        bodies->push_back(new Body(is_big ? 100e2 : 100000, is_big ? 10 : 1, pos, vel, sf::CircleShape(1,100)));
+    }
+
+
+    ubvx = 0, lbvx = -0;
+    ubvy = 15, lbvy = 15;
+    for (int i = 0; i < N / 2; i++) {
+        utils::Vector2 pos;
+        pos.x = (rand() % ((ubpx - lbpx + 1) * 10000)) / 10000.f + 4 * lbpx;
+        pos.y = (rand() % ((ubpy - lbpy + 1) * 10000)) / 10000.f + lbpy;
+        utils::Vector2 vel;
+        vel.x = (rand() % (ubvx - lbvx + 1)) + lbvx;
+        vel.y = (rand() % (ubvy - lbvy + 1)) + lbvy;
         bool is_big = 0;
         if (rand() % 100 == 0)
             is_big = 0;
         bodies->push_back(new Body(is_big ? 100e2 : 10000, is_big ? 10 : 1, pos, vel, sf::CircleShape(1,100)));
     }
+
     return new sf::Thread(std::bind(&AppEngine::universe_logic, this, size, theta, G, epsilon, 1));
 }
 

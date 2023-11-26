@@ -4,6 +4,9 @@
 #include <vector>
 #include <set>
 #include <iostream>
+#include <unistd.h>
+#include <chrono>
+#include "cuda.hpp"
 #include "body.hpp"
 #include "../threadpool.hpp"
 
@@ -57,6 +60,7 @@ struct barnes_hut_node {
 class BarnesHutTree {
 public:
     void walk(double dt);
+    void walkCUDA(float dt);
     void constructTree();
     BarnesHutTree(std::vector <Body *> *&bodies, utils::Vector2  size, double theta = 0.5, double G = 6.67430e-11, double epsilon = 0) {
         this->bodies = bodies;

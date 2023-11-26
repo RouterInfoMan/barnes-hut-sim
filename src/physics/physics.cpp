@@ -1,6 +1,5 @@
 #include "physics.hpp"
-#include <unistd.h>
-#include <chrono>
+
 
 
 utils::Vector2 PhysicsUtils::getCenterOfMass(std::set <Body *> vec) {
@@ -286,4 +285,40 @@ void BarnesHutTree::walk(double dt) {
         }
     }
     this->root = NULL;
+}
+
+void BarnesHutTree::walkCUDA(float dt) {
+    // this->constructTree();
+    // for (auto &x : *(this->bodies)) {
+    //     this->collide(this->root, x);
+    // }
+
+    size_t length = this->bodies->size();
+    CUDABody_t *bodies = (CUDABody_t *)malloc(sizeof(CUDABody_t) * length);
+    for (int i = 0; i < length; i++) {
+        bodies[i].pos = make_float2((*this->bodies)[i]->getPosition().x, (*this->bodies)[i]->getPosition().y);
+        bodies[i].vel = make_float2((*this->bodies)[i]->getVelocity().x, (*this->bodies)[i]->getVelocity().y);
+        bodies[i].mass = (*this->bodies)[i]->getMass();
+    }
+    walkCUDADevice(bodies, length, this->G, dt);
+    for (int i = 0; i < length; i++) {
+        (*this->bodies)[i]->setPosition(utils::Vector2(bodies[i].pos.x, bodies[i].pos.y));
+        (*this->bodies)[i]->setVelocity(utils::Vector2(bodies[i].vel.x, bodies[i].vel.y));
+    }
+    // sleep(1);
+
+    // delete this->root;
+    // for (auto x = this->bodies->begin(); x != this->bodies->end(); ) {
+    //     if (this->is_purgable((*x)->getPosition())) {
+    //         delete *x;
+    //         x = this->bodies->erase(x);
+    //         if (x == this->bodies->end()) {
+    //             break;
+    //         }
+    //     } else {
+    //         ++x;
+    //     }
+    // }
+    // this->root = NULL;
+    // free(bodies);
 }
