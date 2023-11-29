@@ -52,10 +52,10 @@ private:
     std::vector <Body *> *bodies;
     // Size of universe (real, i calculated it)
     // One day
-    const double dt = 0.001;
+    const double dt = 60;
     // Scale
     double scale = 1e6;
 
-    void loadFromFile(std::string path);
+    sf::Thread *loadFromFile(std::string path);
     sf::Thread *random_bodies();
 };

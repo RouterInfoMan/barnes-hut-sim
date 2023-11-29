@@ -102,7 +102,7 @@ void AppEngine::video_loop() {
     }
 }
 
-void AppEngine::loadFromFile(std::string path) {
+sf::Thread *AppEngine::loadFromFile(std::string path) {
     std::ifstream fin;
     fin.open(path);
     int count;
@@ -113,20 +113,22 @@ void AppEngine::loadFromFile(std::string path) {
         utils::Vector2 pos, vel;
         int r, g, b;
         fin >> pos.x >> pos.y >> vel.x >> vel.y >> mass >> rad >> r >> g >> b;
-
-        sf::CircleShape shp(rad / this->scale + log10(rad)/M_PI/2 + 1, 100);
+        sf::CircleShape shp(rad / this->scale + log10(rad)/M_PI/2 + 5, 100);
         shp.setFillColor(sf::Color(r, g, b));
         Body *sun = new Body(mass, rad, pos, vel, shp);
         
         bodies->push_back(sun);
     }
+    it = bodies->begin();
     
     fin.close();
+
+    return new sf::Thread(std::bind(&AppEngine::universe_logic, this, utils::Vector2(1e13, 1e13), 0.5, 6.6743e-11, 0.001, this->scale));
 }
 void AppEngine::universe_logic(utils::Vector2 size, double theta, double G, double epsilon, double scale) {
     this->scale = scale;
     while(1) {
-        BarnesHutTree *bht = new BarnesHutTree(this->bodies, size, G, epsilon);
+        BarnesHutTree *bht = new BarnesHutTree(this->bodies, size, theta, G, epsilon);
         bht->walk(this->dt);
         delete bht;
     }
@@ -218,7 +220,7 @@ void AppEngine::start() {
     //     vel += vel_step;
     // }
     // it = bodies->begin();
-    sf::Thread *t = random_bodies();
+    sf::Thread *t = loadFromFile("planets.txt");
     t->launch();
 
     video_loop();
