@@ -251,14 +251,15 @@ void BarnesHutTree::walk(double dt) {
     using std::chrono::milliseconds;
 
     this->constructTree();
-    // for (auto &x : *(this->bodies)) {
-    //     this->collide(this->root, x);
-    // }
+    for (auto &x : *(this->bodies)) {
+        this->collide(this->root, x);
+    }
     auto t1 = high_resolution_clock::now();
     for (auto &x : *(this->bodies)) {
         // this->applyNetForce(x);
         this->pool->QueueJob([&] {this->applyNetForce(x);});
     }
+    while(this->pool->busy());
     auto t2 = high_resolution_clock::now();
 
     duration<double, std::milli> ms_double = t2 - t1;

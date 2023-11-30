@@ -135,9 +135,9 @@ void AppEngine::universe_logic(utils::Vector2 size, double theta, double G, doub
 }
 
 sf::Thread *AppEngine::random_bodies() {
-    size_t N = 100000, M = 1;
+    size_t N = (1 << 11), M = 1;
     utils::Vector2 size = {1e10, 1e10};
-    utils::Vector2 range = {2 * 1920, 2 * 1080};
+    utils::Vector2 range = {1920, 1080};
     double theta = 0.5;
     double G = 1;
     double epsilon = 0.001;
@@ -220,7 +220,8 @@ void AppEngine::start() {
     //     vel += vel_step;
     // }
     // it = bodies->begin();
-    sf::Thread *t = loadFromFile("planets.txt");
+    // sf::Thread *t = loadFromFile("planets.txt");
+    sf::Thread *t = random_bodies();
     t->launch();
 
     video_loop();
