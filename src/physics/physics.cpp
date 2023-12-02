@@ -157,7 +157,7 @@ utils::Vector2 BarnesHutTree::computeNetForceHelper(barnes_hut_node *it, Body *b
 }
 
 void BarnesHutTree::applyNetForce(Body *body) {
-    utils::Vector2 force = computeNetForceHelper(this->root, body, 0.01);
+    utils::Vector2 force = computeNetForceHelper(this->root, body, epsilon);
     body->setAcceleration(force / body->getMass());
 }
 
@@ -258,6 +258,7 @@ void BarnesHutTree::walk(double dt) {
         // this->applyNetForce(x);
         this->pool->QueueJob([&] {this->applyNetForce(x);});
     }
+    while(this->pool->busy());
     auto t2 = high_resolution_clock::now();
 
     duration<double, std::milli> ms_double = t2 - t1;

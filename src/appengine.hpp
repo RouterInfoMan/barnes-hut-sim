@@ -56,6 +56,6 @@ private:
     // Scale
     double scale = 1e6;
 
-    void loadFromFile(std::string path);
+    sf::Thread *loadFromFile(std::string path);
     sf::Thread *random_bodies();
 };
